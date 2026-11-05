@@ -8,3 +8,5 @@ orjson
 python-dotenv
 httpx[http2]
 cryptography
+jinja2
+python-multipart
