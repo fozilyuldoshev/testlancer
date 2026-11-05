@@ -1,0 +1,10 @@
+starlette
+uvicorn[standard]
+asyncpg
+asyncpg-stubs
+redis
+hiredis
+orjson
+python-dotenv
+httpx[http2]
+cryptography
