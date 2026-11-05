@@ -4,18 +4,18 @@ from contextlib import asynccontextmanager
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import Response
-from starlette.routing import Route
 from project.cache import cache
 from project.config import config
 from project.db import db
 from project.log import log
 from project.migrate import migrate
+from project.route import Route
 
 
 class HTTP:
     def __init__(self) -> None:
         self.app = Starlette(
-            routes=[],
+            routes=Route.compile(),
             exception_handlers={
                 500: self.error,
                 Exception: self.error,
