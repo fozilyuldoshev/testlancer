@@ -26,10 +26,16 @@ class Config:
         teacher_emails_raw = os.getenv("TEACHER_EMAILS") or os.getenv("TEACHER_EMAIL") or ""
         self.teacher_emails = [e.strip().lower() for e in teacher_emails_raw.split(",") if e.strip()]
 
+    @property
+    def teacher_emails_list(self) -> list:
+        raw = os.getenv("TEACHER_EMAILS") or os.getenv("TEACHER_EMAIL") or ""
+        return [e.strip().lower() for e in raw.split(",") if e.strip()]
+
     def is_teacher_email(self, email: str) -> bool:
         if not email:
             return False
-        return email.strip().lower() in self.teacher_emails
+        clean_email = email.strip().lower()
+        return clean_email in self.teacher_emails_list or clean_email in self.teacher_emails
 
 
 config = Config()

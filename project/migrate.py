@@ -104,6 +104,22 @@ class Schema:
         if not result:
             raise Exception(f"Schema error ({name})")
 
+    @staticmethod
+    async def table(name: str, callback: Callable[[Blueprint], None]) -> None:
+        blueprint = Blueprint(name)
+        callback(blueprint)
+        for col in blueprint.columns:
+            query = f"ALTER TABLE {name} ADD COLUMN IF NOT EXISTS {col.compile()};"
+            result = await db.execute(query)
+            if not result:
+                raise Exception(f"Schema alter table error ({name}) on column {col.name}")
+
+    @staticmethod
+    async def raw(query: str, *args) -> None:
+        result = await db.execute(query, *args)
+        if not result:
+            raise Exception(f"Schema raw query error: {query}")
+
 
 class Migrate:
     @staticmethod

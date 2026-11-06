@@ -18,9 +18,7 @@ class AuthController:
             redirect.set_cookie("oauth_state", state, max_age=300, httponly=True, samesite="lax")
             return redirect
 
-        # If Google credentials are not yet configured in .env, redirect to convenient local login prompt
-        # with guidance on setting up GOOGLE_CLIENT_ID or using local dev login
-        return response.redirect("/login?dev_mode=true")
+        return response.redirect("/login?error=oauth_not_configured")
 
     @staticmethod
     async def google_callback(request: Request, response: Response):
@@ -45,54 +43,6 @@ class AuthController:
             return response.redirect("/login?error=session_error")
 
         target_url = "/teacher" if user.get("role") == "teacher" else "/student"
-        redirect = response.redirect(target_url)
-        redirect.set_cookie(
-            auth_service.SESSION_COOKIE_NAME,
-            token,
-            max_age=auth_service.SESSION_MAX_AGE,
-            httponly=True,
-            samesite="lax",
-            path="/"
-        )
-        return redirect
-
-    @staticmethod
-    async def dev_login(request: Request, response: Response):
-        # Allow instant developer testing when Google OAuth credentials are being setup
-        data = await request.json() if request.method == "POST" else request.query
-        email = data.get("email")
-        role_hint = data.get("role")
-
-        if not email:
-            if role_hint == "teacher" and config.teacher_emails:
-                email = config.teacher_emails[0]
-            elif role_hint == "teacher":
-                email = "teacher@gmail.com"
-            else:
-                email = "alex.johnson@student.edu"
-
-        name = data.get("name")
-        avatar = data.get("avatar")
-
-        user = await auth_service.find_or_create_user(email=email, name=name, avatar=avatar)
-        if not user:
-            return response.json({"error": "Failed to create user"}, status=500)
-
-        token = auth_service.create_session_token(user)
-        target_url = "/teacher" if user.get("role") == "teacher" else "/student"
-
-        if request.headers.get("accept", "").startswith("application/json") and request.method == "POST":
-            json_resp = response.json({"success": True, "user": user, "redirect": target_url})
-            json_resp.set_cookie(
-                auth_service.SESSION_COOKIE_NAME,
-                token,
-                max_age=auth_service.SESSION_MAX_AGE,
-                httponly=True,
-                samesite="lax",
-                path="/"
-            )
-            return json_resp
-
         redirect = response.redirect(target_url)
         redirect.set_cookie(
             auth_service.SESSION_COOKIE_NAME,

@@ -16,8 +16,6 @@ route.get("/take-test", main_controller.take_test)
 # Authentication Endpoints
 route.get("/auth/google", auth_controller.google_login)
 route.get("/auth/google/callback", auth_controller.google_callback)
-route.get("/auth/dev-login", auth_controller.dev_login)
-route.post("/auth/dev-login", auth_controller.dev_login)
 route.get("/logout", auth_controller.logout)
 route.post("/logout", auth_controller.logout)
 route.get("/api/me", auth_controller.me)

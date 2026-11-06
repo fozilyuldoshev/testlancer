@@ -77,41 +77,51 @@ class AuthService:
         display_name = name.strip() if name and name.strip() else email.split("@")[0].title()
         avatar_url = avatar or f"https://api.dicebear.com/7.x/avataaars/svg?seed={email}"
 
-        try:
-            existing = await db.fetchrow("SELECT * FROM users WHERE LOWER(email) = $1", email)
-            if existing:
-                # Update role and profile information if changed
-                row = await db.fetchrow(
-                    """
-                    UPDATE users 
-                    SET name = $1, avatar = COALESCE($2, avatar), role = $3, updated_at = CURRENT_TIMESTAMP 
-                    WHERE id = $4 
-                    RETURNING *
-                    """,
-                    display_name,
-                    avatar_url,
-                    role,
-                    existing["id"]
-                )
-                return dict(row) if row else dict(existing)
-            else:
-                user_uuid = uuid.uuid4().hex
-                row = await db.fetchrow(
-                    """
-                    INSERT INTO users (uuid, email, name, avatar, role) 
-                    VALUES ($1, $2, $3, $4, $5) 
-                    RETURNING *
-                    """,
-                    user_uuid,
-                    email,
-                    display_name,
-                    avatar_url,
-                    role
-                )
-                return dict(row) if row else None
-        except Exception:
-            log.exception(f"Error finding/creating user for {email}")
-            return None
+        for attempt in range(2):
+            try:
+                existing = await db.fetchrow("SELECT * FROM users WHERE LOWER(email) = $1", email)
+                if existing:
+                    # Update role and profile information if changed
+                    row = await db.fetchrow(
+                        """
+                        UPDATE users 
+                        SET name = $1, avatar = COALESCE($2, avatar), role = $3, updated_at = CURRENT_TIMESTAMP 
+                        WHERE id = $4 
+                        RETURNING *
+                        """,
+                        display_name,
+                        avatar_url,
+                        role,
+                        existing["id"]
+                    )
+                    return dict(row) if row else dict(existing)
+                else:
+                    user_uuid = uuid.uuid4().hex
+                    row = await db.fetchrow(
+                        """
+                        INSERT INTO users (uuid, email, name, avatar, role) 
+                        VALUES ($1, $2, $3, $4, $5) 
+                        RETURNING *
+                        """,
+                        user_uuid,
+                        email,
+                        display_name,
+                        avatar_url,
+                        role
+                    )
+                    return dict(row) if row else None
+            except Exception as e:
+                log.exception(f"Error finding/creating user for {email} on attempt {attempt + 1}")
+                if attempt == 0:
+                    # Auto-heal schema if missing columns
+                    log.warning("Applying missing columns to users table...")
+                    await db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(255) DEFAULT 'User' NOT NULL")
+                    await db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT")
+                    await db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS role VARCHAR(32) DEFAULT 'student' NOT NULL")
+                    await db.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
+                else:
+                    return None
+        return None
 
     @staticmethod
     def create_session_token(user: dict) -> Optional[str]:
