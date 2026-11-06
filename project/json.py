@@ -1,6 +1,13 @@
 import orjson
+from decimal import Decimal
 from typing import Any, Union
 from project.log import log
+
+
+def custom_default(obj):
+    if isinstance(obj, Decimal):
+        return str(obj)
+    raise TypeError
 
 
 class JSON:
@@ -9,9 +16,9 @@ class JSON:
         if not isinstance(value, (dict, list)):
             return value
         try:
-            return orjson.dumps(value).decode()
+            return orjson.dumps(value, default=custom_default).decode()
         except Exception:
-            log.exception(f"JSON dumps error")
+            log.exception("JSON dumps error")
             return None
 
     @staticmethod
@@ -23,7 +30,7 @@ class JSON:
         except (orjson.JSONDecodeError, TypeError):
             return value
         except Exception:
-            log.exception(f"JSON loads error")
+            log.exception("JSON loads error")
             return None
 
 
