@@ -62,6 +62,18 @@ class Blueprint:
     def bigint(self, name: str) -> Column:
         return self.add_column(name, "BIGINT")
 
+    def integer(self, name: str) -> Column:
+        return self.add_column(name, "INTEGER")
+
+    def float(self, name: str) -> Column:
+        return self.add_column(name, "DOUBLE PRECISION")
+
+    def text(self, name: str) -> Column:
+        return self.add_column(name, "TEXT")
+
+    def json(self, name: str) -> Column:
+        return self.add_column(name, "JSONB")
+
     def uuid(self, name: str) -> Column:
         return self.add_column(name, "UUID")
 

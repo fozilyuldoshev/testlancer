@@ -135,6 +135,41 @@
         </div>
     </div>
 
+    <!-- Submissions / Results Modal -->
+    <div id="submissions-modal" class="modal-backdrop" style="display: none;">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header-row">
+                <div>
+                    <h3 class="modal-title" id="submissions-test-title">Student Submissions</h3>
+                    <p class="modal-subtitle">Results and performance for this test</p>
+                </div>
+                <button id="close-submissions-btn" class="btn-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div class="submissions-table-wrapper">
+                <table class="submissions-table">
+                    <thead>
+                        <tr>
+                            <th>Student</th>
+                            <th>Score</th>
+                            <th>Percentage</th>
+                            <th>Status</th>
+                            <th>Time Spent</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="submissions-table-body">
+                        <!-- Populated via JS -->
+                    </tbody>
+                </table>
+                <div id="no-submissions-msg" class="empty-table-msg" style="display: none;">
+                    No submissions recorded for this test yet.
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="/static/teacher.js"></script>
 </body>
 </html>

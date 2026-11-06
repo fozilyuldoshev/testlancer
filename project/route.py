@@ -23,6 +23,15 @@ class Route:
     def post(self, path: str, handler: Callable) -> None:
         self._add("POST", path, handler)
 
+    def put(self, path: str, handler: Callable) -> None:
+        self._add("PUT", path, handler)
+
+    def delete(self, path: str, handler: Callable) -> None:
+        self._add("DELETE", path, handler)
+
+    def patch(self, path: str, handler: Callable) -> None:
+        self._add("PATCH", path, handler)
+
     def _add(self, method: str, path: str, handler: Callable) -> None:
         async def wrapper(raw: StarletteRequest) -> StarletteResponse:
             try:

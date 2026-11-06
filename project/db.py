@@ -55,6 +55,17 @@ class DB:
             log.exception(f"DB FetchRow Error | Query: {query} | Args: {args}")
             return None
 
+    async def fetchval(self, query: str, *args) -> Optional[Any]:
+        if not self.db:
+            log.error(f"DB FetchVal error: Postgres not connected")
+            return None
+        try:
+            async with self.db.acquire() as connect:
+                return await connect.fetchval(query, *args)
+        except Exception:
+            log.exception(f"DB FetchVal Error | Query: {query} | Args: {args}")
+            return None
+
     async def fetch(self, query: str, *args) -> List[Any]:
         if not self.db:
             log.error(f"DB Fetch error: Postgres not connected")

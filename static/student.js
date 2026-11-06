@@ -1,229 +1,269 @@
-// Initial mock data if empty
-const DEFAULT_TESTS = [
-    {
-        id: "test-1",
-        title: "Introduction to JavaScript & ES6",
-        subject: "Web Development",
-        description: "Core concepts of JavaScript, closures, promises, async/await, and modern ES6 features.",
-        duration: 30,
-        status: "Active",
-        submissionsCount: 28,
-        createdAt: "2026-10-15",
-        questions: [
-            {
-                id: "q1",
-                question: "What is the output of `typeof null` in JavaScript?",
-                options: ["null", "undefined", "object", "number"],
-                correctAnswer: 2
-            },
-            {
-                id: "q2",
-                question: "Which keyword creates a block-scoped variable?",
-                options: ["var", "let", "global", "def"],
-                correctAnswer: 1
-            },
-            {
-                id: "q3",
-                question: "What does `Promise.all()` return if one promise rejects?",
-                options: ["An array of errors", "The rejected promise error immediately", "Undefined", "Null"],
-                correctAnswer: 1
-            }
-        ]
-    },
-    {
-        id: "test-2",
-        title: "Python Data Structures & Algorithms",
-        subject: "Computer Science",
-        description: "Assessing knowledge of lists, dicts, tuples, sets, time complexity, and tree traversal.",
-        duration: 45,
-        status: "Active",
-        submissionsCount: 42,
-        createdAt: "2026-10-20",
-        questions: [
-            {
-                id: "q1",
-                question: "What is the average time complexity of searching a key in a Python dict?",
-                options: ["O(n)", "O(log n)", "O(1)", "O(n^2)"],
-                correctAnswer: 2
-            },
-            {
-                id: "q2",
-                question: "Which of the following data structures is immutable?",
-                options: ["list", "set", "dict", "tuple"],
-                correctAnswer: 3
-            }
-        ]
-    },
-    {
-        id: "test-3",
-        title: "Relational Database & SQL Basics",
-        subject: "Database Management",
-        description: "Queries, joins, indexing, primary & foreign keys, normalization concepts.",
-        duration: 25,
-        status: "Draft",
-        submissionsCount: 0,
-        createdAt: "2026-11-01",
-        questions: [
-            {
-                id: "q1",
-                question: "Which SQL clause is used to filter rows after an aggregation?",
-                options: ["WHERE", "HAVING", "GROUP BY", "ORDER BY"],
-                correctAnswer: 1
-            }
-        ]
-    }
-];
-
-function getStoredTests() {
-    const raw = localStorage.getItem('testlancer_tests');
-    if (!raw) {
-        localStorage.setItem('testlancer_tests', JSON.stringify(DEFAULT_TESTS));
-        return DEFAULT_TESTS;
-    }
-    try {
-        return JSON.parse(raw);
-    } catch (e) {
-        return DEFAULT_TESTS;
-    }
-}
-
-function getStudentResults() {
-    const raw = localStorage.getItem('testlancer_student_results');
-    try {
-        return raw ? JSON.parse(raw) : [];
-    } catch (e) {
-        return [];
-    }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-    // User profile
-    const user = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    if (user.name) {
-        const userNameEl = document.getElementById('user-name');
-        if (userNameEl) userNameEl.textContent = user.name;
-    }
-    if (user.avatar) {
-        const userAvatarEl = document.getElementById('user-avatar');
-        if (userAvatarEl) userAvatarEl.src = user.avatar;
-    }
-
-    const logoutBtn = document.getElementById('logout-btn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            localStorage.removeItem('currentUser');
-            window.location.href = '/login';
-        });
-    }
-
-    const allTests = getStoredTests();
-    // Student only sees Active tests
-    const activeTests = allTests.filter(t => t.status === 'Active');
-    const studentResults = getStudentResults();
-
-    const testsListContainer = document.getElementById('tests-list-container');
+    // DOM Elements
+    const testsContainer = document.getElementById('tests-list-container');
     const emptyState = document.getElementById('empty-state');
     const searchInput = document.getElementById('search-input');
     const subjectFilter = document.getElementById('subject-filter');
-
-    // Stats
     const statAvailableTests = document.getElementById('stat-available-tests');
     const statCompletedTests = document.getElementById('stat-completed-tests');
     const statAvgScore = document.getElementById('stat-avg-score');
+    const statRank = document.getElementById('stat-rank');
+    const logoutBtn = document.getElementById('logout-btn');
+    const userAvatar = document.getElementById('user-avatar');
+    const userName = document.getElementById('user-name');
 
-    if (statAvailableTests) statAvailableTests.textContent = activeTests.length;
-    if (statCompletedTests) statCompletedTests.textContent = studentResults.length;
-    if (statAvgScore) {
-        if (studentResults.length > 0) {
-            const sum = studentResults.reduce((acc, r) => acc + (r.scorePercent || 0), 0);
-            statAvgScore.textContent = Math.round(sum / studentResults.length) + '%';
-        } else {
-            statAvgScore.textContent = '--';
+    // Tabs
+    const tabTests = document.getElementById('tab-tests');
+    const tabLeaderboard = document.getElementById('tab-leaderboard');
+    const testsView = document.getElementById('tests-view-container');
+    const leaderboardView = document.getElementById('leaderboard-view-container');
+    const leaderboardTableBody = document.getElementById('leaderboard-table-body');
+    const emptyLeaderboard = document.getElementById('empty-leaderboard');
+
+    let testsData = [];
+    let leaderboardData = [];
+
+    // Load User info
+    async function loadUser() {
+        try {
+            const resp = await fetch('/api/me');
+            if (resp.ok) {
+                const data = await resp.json();
+                if (data.user) {
+                    if (userName) userName.textContent = data.user.name;
+                    if (userAvatar && data.user.avatar) userAvatar.src = data.user.avatar;
+                }
+            }
+        } catch (e) {
+            console.error('Error fetching user:', e);
         }
     }
 
-    // Populate Subjects
-    const subjects = Array.from(new Set(activeTests.map(t => t.subject).filter(Boolean)));
-    subjects.forEach(sub => {
-        const opt = document.createElement('option');
-        opt.value = sub;
-        opt.textContent = sub;
-        subjectFilter.appendChild(opt);
-    });
+    // Load Stats
+    async function loadStats() {
+        try {
+            const resp = await fetch('/api/student/stats');
+            if (resp.ok) {
+                const data = await resp.json();
+                const stats = data.stats || {};
+                if (statAvailableTests) statAvailableTests.textContent = stats.available_tests || 0;
+                if (statCompletedTests) statCompletedTests.textContent = stats.completed_tests || 0;
+                if (statAvgScore) statAvgScore.textContent = `${stats.avg_score || 0}%`;
+                if (statRank) statRank.textContent = stats.rank || '-';
+            }
+        } catch (e) {
+            console.error('Error loading stats:', e);
+        }
+    }
 
+    // Load Tests
+    async function loadTests() {
+        try {
+            const resp = await fetch('/api/student/tests');
+            if (resp.ok) {
+                const data = await resp.json();
+                testsData = data.tests || [];
+                populateSubjectFilter();
+                renderTests();
+            }
+        } catch (e) {
+            console.error('Error loading tests:', e);
+        }
+    }
+
+    // Populate Subjects Filter
+    function populateSubjectFilter() {
+        if (!subjectFilter) return;
+        const currentVal = subjectFilter.value;
+        const subjects = Array.from(new Set(testsData.map(t => t.subject).filter(Boolean)));
+        
+        subjectFilter.innerHTML = '<option value="all">All Subjects</option>' + 
+            subjects.map(s => `<option value="${escapeAttr(s)}" ${s === currentVal ? 'selected' : ''}>${escapeHtml(s)}</option>`).join('');
+    }
+
+    // Render Tests
     function renderTests() {
-        const query = (searchInput?.value || '').toLowerCase().trim();
-        const selectedSubject = subjectFilter?.value || 'all';
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const selectedSubject = subjectFilter ? subjectFilter.value : 'all';
 
-        const filtered = activeTests.filter(t => {
-            const matchesQuery = t.title.toLowerCase().includes(query) ||
-                (t.subject && t.subject.toLowerCase().includes(query)) ||
-                (t.description && t.description.toLowerCase().includes(query));
-            const matchesSubject = selectedSubject === 'all' || t.subject === selectedSubject;
+        const filtered = testsData.filter(test => {
+            const matchesQuery = 
+                (test.title && test.title.toLowerCase().includes(query)) ||
+                (test.subject && test.subject.toLowerCase().includes(query)) ||
+                (test.description && test.description.toLowerCase().includes(query));
+            
+            const matchesSubject = (selectedSubject === 'all') || (test.subject === selectedSubject);
             return matchesQuery && matchesSubject;
         });
 
         if (filtered.length === 0) {
-            testsListContainer.innerHTML = '';
-            emptyState.style.display = 'block';
+            if (testsContainer) testsContainer.innerHTML = '';
+            if (emptyState) emptyState.style.display = 'block';
             return;
         }
 
-        emptyState.style.display = 'none';
-        testsListContainer.innerHTML = filtered.map(test => {
-            const isCompleted = studentResults.some(r => r.testId === test.id);
-            const resultInfo = studentResults.find(r => r.testId === test.id);
+        if (emptyState) emptyState.style.display = 'none';
+        if (testsContainer) {
+            testsContainer.innerHTML = filtered.map(test => createTestCardHTML(test)).join('');
+        }
+    }
 
-            return `
-                <div class="test-card">
-                    <div>
-                        <span class="test-badge-subject">${escapeHtml(test.subject || 'General')}</span>
-                        <h2 class="test-title">${escapeHtml(test.title)}</h2>
-                        <p class="test-description">${escapeHtml(test.description || 'No description provided.')}</p>
+    function createTestCardHTML(test) {
+        const hasTaken = Boolean(test.has_taken);
+        const lastPercentage = test.latest_percentage || 0;
+        const passed = Boolean(test.latest_passed);
+
+        return `
+            <div class="test-card" data-id="${test.id}">
+                <div class="test-card-header">
+                    <span class="test-subject">${escapeHtml(test.subject || 'General')}</span>
+                    ${hasTaken ? `
+                        <span class="badge ${passed ? 'badge-success' : 'badge-danger'}">
+                            ${passed ? 'Passed' : 'Failed'} (${lastPercentage}%)
+                        </span>
+                    ` : `
+                        <span class="badge badge-indigo">New</span>
+                    `}
+                </div>
+                
+                <h3 class="test-title">${escapeHtml(test.title || 'Untitled Test')}</h3>
+                <p class="test-desc">${escapeHtml(test.description || 'No instructions provided for this test.')}</p>
+
+                <div class="test-meta">
+                    <div class="meta-item">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                        <span>${test.duration || 30} mins</span>
                     </div>
-
-                    <div>
-                        <div class="test-meta">
-                            <div class="meta-item">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
-                                <span>${test.duration} min</span>
-                            </div>
-                            <div class="meta-item">
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                                <span>${test.questions ? test.questions.length : 0} Questions</span>
-                            </div>
-                            ${isCompleted ? `
-                                <div class="meta-item" style="color: #16a34a; font-weight: 600;">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-                                    <span>Score: ${resultInfo.scorePercent}%</span>
-                                </div>
-                            ` : ''}
-                        </div>
-
-                        <div class="test-card-actions">
-                            <a href="/take-test?id=${test.id}" class="btn btn-primary">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                                <span>${isCompleted ? 'Retake Test' : 'Take Test'}</span>
-                            </a>
-                        </div>
+                    <div class="meta-item">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <span>${test.questions_count || 0} Questions</span>
+                    </div>
+                    <div class="meta-item">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Pass: ${test.passing_score || 70}%</span>
                     </div>
                 </div>
+
+                <div class="test-card-footer">
+                    <span class="teacher-info">By ${escapeHtml(test.teacher_name || 'Teacher')}</span>
+                    <a href="/take-test?id=${test.id}" class="btn ${hasTaken ? 'btn-outline' : 'btn-primary'} btn-sm">
+                        <span>${hasTaken ? 'Retake Test' : 'Take Test'}</span>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+
+    // Load Leaderboard
+    async function loadLeaderboard() {
+        if (!leaderboardTableBody) return;
+        leaderboardTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">Loading leaderboard rankings...</td></tr>';
+        
+        try {
+            const resp = await fetch('/api/leaderboard');
+            if (resp.ok) {
+                const data = await resp.json();
+                leaderboardData = data.leaderboard || [];
+                renderLeaderboard();
+            }
+        } catch (e) {
+            console.error('Error loading leaderboard:', e);
+            leaderboardTableBody.innerHTML = '<tr><td colspan="6" style="text-align:center; color: red;">Failed to load leaderboard.</td></tr>';
+        }
+    }
+
+    function renderLeaderboard() {
+        if (!leaderboardTableBody) return;
+
+        if (leaderboardData.length === 0) {
+            leaderboardTableBody.innerHTML = '';
+            if (emptyLeaderboard) emptyLeaderboard.style.display = 'block';
+            return;
+        }
+
+        if (emptyLeaderboard) emptyLeaderboard.style.display = 'none';
+
+        leaderboardTableBody.innerHTML = leaderboardData.map(entry => {
+            let rankBadge = `#${entry.rank}`;
+            if (entry.rank === 1) rankBadge = '🥇 #1';
+            else if (entry.rank === 2) rankBadge = '🥈 #2';
+            else if (entry.rank === 3) rankBadge = '🥉 #3';
+
+            return `
+                <tr class="${entry.rank <= 3 ? 'top-rank-row' : ''}">
+                    <td>
+                        <span class="rank-badge rank-${entry.rank}">${rankBadge}</span>
+                    </td>
+                    <td>
+                        <div class="table-student-info">
+                            <img src="${entry.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + entry.email}" class="table-avatar" alt="Avatar">
+                            <div>
+                                <div class="table-name">${escapeHtml(entry.name || 'Student')}</div>
+                                <div class="table-email">${escapeHtml(entry.email || '')}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><strong>${entry.tests_completed || 0}</strong></td>
+                    <td><strong class="points-text">${entry.total_points || 0} pts</strong></td>
+                    <td>${entry.avg_percentage || 0}%</td>
+                    <td><span class="badge badge-success">${entry.best_percentage || 0}%</span></td>
+                </tr>
             `;
         }).join('');
     }
 
+    // Tab Switch Events
+    if (tabTests && tabLeaderboard) {
+        tabTests.addEventListener('click', () => {
+            tabTests.classList.add('active');
+            tabLeaderboard.classList.remove('active');
+            if (testsView) testsView.style.display = 'block';
+            if (leaderboardView) leaderboardView.style.display = 'none';
+        });
+
+        tabLeaderboard.addEventListener('click', () => {
+            tabLeaderboard.classList.add('active');
+            tabTests.classList.remove('active');
+            if (testsView) testsView.style.display = 'none';
+            if (leaderboardView) leaderboardView.style.display = 'block';
+            loadLeaderboard();
+        });
+    }
+
+    // Filters
     if (searchInput) searchInput.addEventListener('input', renderTests);
     if (subjectFilter) subjectFilter.addEventListener('change', renderTests);
 
-    renderTests();
-});
+    // Logout
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            window.location.href = '/logout';
+        });
+    }
 
-function escapeHtml(text) {
-    if (!text) return '';
-    return String(text)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttr(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    // Init
+    loadUser();
+    loadStats();
+    loadTests();
+});

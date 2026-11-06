@@ -1,6 +1,6 @@
 import jinja2
-from typing import Any, Dict, Optional
-from starlette.responses import PlainTextResponse, HTMLResponse
+from typing import Any, Dict, Optional, List
+from starlette.responses import PlainTextResponse, HTMLResponse, RedirectResponse
 from starlette.responses import Response as StarletteResponse
 from project.json import json
 
@@ -20,14 +20,18 @@ class Response:
     def json(data: Any, status: int = 200) -> StarletteResponse:
         content = json.dumps(data)
         if not content:
-            return StarletteResponse(media_type="application/json", status_code=404)
+            return StarletteResponse(content="{}", media_type="application/json", status_code=status)
         return StarletteResponse(
             content=content,
             media_type="application/json",
             status_code=status
         )
 
-    def html(self, name: str, context: Optional[Dict[str, Any]] = None, status: int = 200) -> HTMLResponse:
+    @staticmethod
+    def redirect(url: str, status_code: int = 302) -> RedirectResponse:
+        return RedirectResponse(url=url, status_code=status_code)
+
+    def html(self, name: str, context: Optional[dict] = None, status: int = 200) -> HTMLResponse:
         if not self.env:
             return HTMLResponse("Jinja2 error", status_code=500)
         context = context or {}
@@ -36,4 +40,4 @@ class Response:
             html = template.render(**context)
             return HTMLResponse(html, status_code=status)
         except jinja2.TemplateNotFound:
-            return HTMLResponse(status_code=404)
+            return HTMLResponse("Template Not Found", status_code=404)

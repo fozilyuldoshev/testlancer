@@ -17,5 +17,19 @@ class Config:
         self.db_password = os.getenv("DB_PASSWORD", "")
         self.db_name = os.getenv("DB_NAME", "botrender")
 
+        # Google OAuth configuration
+        self.google_client_id = os.getenv("GOOGLE_CLIENT_ID", "")
+        self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "")
+        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI", "http://localhost:8000/auth/google/callback")
+
+        # Teacher email configuration
+        teacher_emails_raw = os.getenv("TEACHER_EMAILS") or os.getenv("TEACHER_EMAIL") or ""
+        self.teacher_emails = [e.strip().lower() for e in teacher_emails_raw.split(",") if e.strip()]
+
+    def is_teacher_email(self, email: str) -> bool:
+        if not email:
+            return False
+        return email.strip().lower() in self.teacher_emails
+
 
 config = Config()

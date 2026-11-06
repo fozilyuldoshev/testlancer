@@ -469,3 +469,101 @@ body {
 .modal-actions .btn {
     flex: 1;
 }
+
+.modal-dialog.modal-lg {
+    max-width: 800px;
+    width: 95%;
+    text-align: left;
+}
+
+.modal-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-subtitle {
+    font-size: 13px;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #94a3b8;
+    padding: 4px;
+    border-radius: 6px;
+    transition: color 0.2s;
+}
+
+.btn-icon:hover {
+    color: #0f172a;
+    background: #f1f5f9;
+}
+
+.submissions-table-wrapper {
+    overflow-x: auto;
+    max-height: 460px;
+    overflow-y: auto;
+}
+
+.submissions-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.submissions-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.submissions-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    color: #1e293b;
+}
+
+.table-student-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.table-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.table-name {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.table-email {
+    font-size: 11px;
+    color: #64748b;
+}
+
+.empty-table-msg {
+    text-align: center;
+    padding: 30px;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.badge-danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
